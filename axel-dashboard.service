@@ -1,0 +1,16 @@
+[Unit]
+Description=Axel Dashboard
+After=network.target cliproxyapi.service
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/axel-dashboard
+ExecStart=/usr/bin/node src/server.js
+Restart=always
+RestartSec=5
+Environment=HOME=/home/ubuntu
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

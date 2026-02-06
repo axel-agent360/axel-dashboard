@@ -1,0 +1,14 @@
+{
+  "name": "axel-dashboard",
+  "version": "1.0.0",
+  "description": "Axel AI Agent Dashboard",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.14.2"
+  }
+}

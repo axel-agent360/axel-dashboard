@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Axel Dashboard</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0a0a0a;
+      color: #e0e0e0;
+      padding: 20px;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid #333;
+    }
+    h1 { color: #00ff88; font-size: 28px; }
+    .status { display: flex; gap: 20px; }
+    .status-item {
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 14px;
+    }
+    .status-ok { background: #00ff8822; color: #00ff88; }
+    .status-err { background: #ff444422; color: #ff4444; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: #151515;
+      border-radius: 12px;
+      padding: 20px;
+      border: 1px solid #252525;
+    }
+    .card h2 {
+      color: #888;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 15px;
+    }
+    .activity-list {
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .activity-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px;
+      border-bottom: 1px solid #222;
+      font-size: 13px;
+    }
+    .activity-item:hover { background: #1a1a1a; }
+    .tool-name { color: #00aaff; font-family: monospace; }
+    .timestamp { color: #666; font-size: 11px; }
+    .memory-list { display: flex; flex-direction: column; gap: 8px; }
+    .memory-item {
+      padding: 10px 15px;
+      background: #1a1a1a;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .memory-item:hover { background: #252525; }
+    .memory-type { font-size: 11px; color: #666; text-transform: uppercase; }
+    .conversation-list {
+      max-height: 500px;
+      overflow-y: auto;
+    }
+    .conv-msg {
+      padding: 10px 14px;
+      margin-bottom: 8px;
+      border-radius: 8px;
+      font-size: 13px;
+      line-height: 1.5;
+      word-wrap: break-word;
+    }
+    .conv-user {
+      background: #1a2a1a;
+      border-left: 3px solid #00ff88;
+    }
+    .conv-assistant {
+      background: #1a1a2a;
+      border-left: 3px solid #00aaff;
+    }
+    .conv-role {
+      font-size: 11px;
+      font-weight: bold;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .conv-role-user { color: #00ff88; }
+    .conv-role-assistant { color: #00aaff; }
+    .conv-time { color: #555; font-size: 10px; float: right; }
+    .conv-date-select {
+      background: #1a1a1a;
+      color: #e0e0e0;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    .advisors-list { display: flex; flex-wrap: wrap; gap: 10px; }
+    .advisor-tag {
+      padding: 8px 16px;
+      background: #00ff8822;
+      color: #00ff88;
+      border-radius: 20px;
+      font-size: 13px;
+    }
+    .live-indicator {
+      width: 8px;
+      height: 8px;
+      background: #00ff88;
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Axel Dashboard</h1>
+    <div class="status">
+      <div class="live-indicator"></div>
+      <span id="cliproxyapi-status" class="status-item">Checking...</span>
+      <span id="uptime" class="status-item status-ok">--</span>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="card" style="grid-column: 1 / -1;">
+      <h2>Conversations</h2>
+      <select id="conv-date" class="conv-date-select" onchange="loadConversation(this.value)">
+        <option value="">Loading...</option>
+      </select>
+      <div class="conversation-list" id="conversation-list"></div>
+    </div>
+
+    <div class="card">
+      <h2>Live Activity</h2>
+      <div class="activity-list" id="activity-list"></div>
+    </div>
+
+    <div class="card">
+      <h2>Memory</h2>
+      <div class="memory-list" id="memory-list"></div>
+    </div>
+
+    <div class="card">
+      <h2>Advisors</h2>
+      <div class="advisors-list" id="advisors-list"></div>
+    </div>
+
+    <div class="card" style="grid-column: 1 / -1;">
+      <h2>Inventory</h2>
+      <div id="inventory-content" style="font-size:13px; line-height:1.6; max-height:500px; overflow-y:auto; white-space:pre-wrap; font-family:monospace; color:#ccc;"></div>
+    </div>
+  </div>
+
+  <script>
+    const ws = new WebSocket(`ws://${location.host}`);
+
+    ws.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'activity') {
+        addActivity(msg.data);
+      } else if (msg.type === 'conversation') {
+        addConvMessage(msg.data);
+      }
+    };
+
+    function addActivity(item) {
+      const list = document.getElementById('activity-list');
+      const el = document.createElement('div');
+      el.className = 'activity-item';
+      el.innerHTML = `
+        <span class="tool-name">${item.tool}</span>
+        <span class="timestamp">${new Date(item.timestamp).toLocaleTimeString()}</span>
+      `;
+      list.insertBefore(el, list.firstChild);
+      if (list.children.length > 50) list.lastChild.remove();
+    }
+
+    async function loadActivity() {
+      const res = await fetch('/api/activity');
+      const data = await res.json();
+      data.forEach(addActivity);
+    }
+
+    async function loadMemory() {
+      const res = await fetch('/api/memory');
+      const data = await res.json();
+      const list = document.getElementById('memory-list');
+      list.innerHTML = '';
+
+      ['solutions', 'errors', 'patterns'].forEach(type => {
+        data[type].forEach(item => {
+          const el = document.createElement('div');
+          el.className = 'memory-item';
+          el.innerHTML = `
+            <div class="memory-type">${type}</div>
+            <div>${item.name}</div>
+          `;
+          list.appendChild(el);
+        });
+      });
+    }
+
+    async function loadAdvisors() {
+      const res = await fetch('/api/advisors');
+      const data = await res.json();
+      const list = document.getElementById('advisors-list');
+      list.innerHTML = data.length ? '' : '<span style="color:#666">No advisors yet. Axel creates them as needed.</span>';
+      data.forEach(a => {
+        const el = document.createElement('span');
+        el.className = 'advisor-tag';
+        el.textContent = a.name;
+        list.appendChild(el);
+      });
+    }
+
+    async function loadStatus() {
+      const res = await fetch('/api/status');
+      const data = await res.json();
+      const el = document.getElementById('cliproxyapi-status');
+      el.textContent = data.cliproxyapi ? 'cliproxyapi OK' : 'cliproxyapi DOWN';
+      el.className = 'status-item ' + (data.cliproxyapi ? 'status-ok' : 'status-err');
+      document.getElementById('uptime').textContent = `Up ${Math.floor(data.uptime / 60)}m`;
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    function addConvMessage(msg) {
+      const list = document.getElementById('conversation-list');
+      const el = document.createElement('div');
+      const role = msg.role || 'unknown';
+      el.className = 'conv-msg conv-' + (role === 'user' ? 'user' : 'assistant');
+      const time = msg.ts ? new Date(msg.ts).toLocaleTimeString() : '';
+      const content = (msg.content || '').substring(0, 2000);
+      el.innerHTML = `
+        <span class="conv-time">${time}</span>
+        <div class="conv-role conv-role-${role === 'user' ? 'user' : 'assistant'}">${escapeHtml(role)}</div>
+        <div>${escapeHtml(content)}</div>
+      `;
+      list.appendChild(el);
+      list.scrollTop = list.scrollHeight;
+    }
+
+    async function loadConversationDates() {
+      const res = await fetch('/api/conversations');
+      const dates = await res.json();
+      const select = document.getElementById('conv-date');
+      select.innerHTML = dates.length
+        ? dates.map(d => `<option value="${d.date}">${d.date}</option>`).join('')
+        : '<option value="">No conversations yet</option>';
+      if (dates.length) loadConversation(dates[0].date);
+    }
+
+    async function loadConversation(date) {
+      if (!date) return;
+      const res = await fetch('/api/conversations/' + date);
+      const messages = await res.json();
+      const list = document.getElementById('conversation-list');
+      list.innerHTML = '';
+      messages.forEach(addConvMessage);
+      list.scrollTop = list.scrollHeight;
+    }
+
+    async function loadInventory() {
+      const res = await fetch('/api/inventory');
+      if (res.ok) {
+        const text = await res.text();
+        document.getElementById('inventory-content').textContent = text;
+      } else {
+        document.getElementById('inventory-content').textContent = 'No inventory yet.';
+      }
+    }
+
+    loadInventory();
+    loadConversationDates();
+    loadActivity();
+    loadMemory();
+    loadAdvisors();
+    loadStatus();
+    setInterval(loadStatus, 30000);
+    setInterval(loadMemory, 60000);
+    setInterval(loadAdvisors, 60000);
+    setInterval(loadConversationDates, 120000);
+  </script>
+</body>
+</html>
