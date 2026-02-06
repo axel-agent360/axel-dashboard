@@ -1,308 +1,772 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="da">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Axel Dashboard</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --bg: #09090b;
+      --card: #18181b;
+      --border: #27272a;
+      --text: #fafafa;
+      --muted: #71717a;
+      --accent: #3b82f6;
+      --green: #22c55e;
+      --red: #ef4444;
+      --yellow: #eab308;
+    }
+    
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      background: #0a0a0a;
-      color: #e0e0e0;
-      padding: 20px;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
     }
-    .header {
+    
+    /* Sidebar */
+    .layout {
+      display: grid;
+      grid-template-columns: 260px 1fr;
+      min-height: 100vh;
+    }
+    
+    .sidebar {
+      background: var(--card);
+      border-right: 1px solid var(--border);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+    
+    .logo-icon {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+    }
+    
+    .logo h1 {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    
+    .nav { flex: 1; }
+    
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      color: var(--muted);
+      text-decoration: none;
+      margin-bottom: 0.25rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    
+    .nav-item:hover { background: var(--border); color: var(--text); }
+    .nav-item.active { background: var(--accent); color: white; }
+    
+    .nav-icon { width: 20px; text-align: center; }
+    
+    .status-card {
+      background: var(--bg);
+      border-radius: 10px;
+      padding: 1rem;
+      margin-top: auto;
+    }
+    
+    .status-row {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 30px;
-      padding-bottom: 20px;
-      border-bottom: 1px solid #333;
+      font-size: 0.875rem;
+      padding: 0.5rem 0;
     }
-    h1 { color: #00ff88; font-size: 28px; }
-    .status { display: flex; gap: 20px; }
-    .status-item {
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-size: 14px;
-    }
-    .status-ok { background: #00ff8822; color: #00ff88; }
-    .status-err { background: #ff444422; color: #ff4444; }
-    .grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
-      gap: 20px;
-    }
-    .card {
-      background: #151515;
-      border-radius: 12px;
-      padding: 20px;
-      border: 1px solid #252525;
-    }
-    .card h2 {
-      color: #888;
-      font-size: 14px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 15px;
-    }
-    .activity-list {
-      max-height: 400px;
-      overflow-y: auto;
-    }
-    .activity-item {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px;
-      border-bottom: 1px solid #222;
-      font-size: 13px;
-    }
-    .activity-item:hover { background: #1a1a1a; }
-    .tool-name { color: #00aaff; font-family: monospace; }
-    .timestamp { color: #666; font-size: 11px; }
-    .memory-list { display: flex; flex-direction: column; gap: 8px; }
-    .memory-item {
-      padding: 10px 15px;
-      background: #1a1a1a;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .memory-item:hover { background: #252525; }
-    .memory-type { font-size: 11px; color: #666; text-transform: uppercase; }
-    .conversation-list {
-      max-height: 500px;
-      overflow-y: auto;
-    }
-    .conv-msg {
-      padding: 10px 14px;
-      margin-bottom: 8px;
-      border-radius: 8px;
-      font-size: 13px;
-      line-height: 1.5;
-      word-wrap: break-word;
-    }
-    .conv-user {
-      background: #1a2a1a;
-      border-left: 3px solid #00ff88;
-    }
-    .conv-assistant {
-      background: #1a1a2a;
-      border-left: 3px solid #00aaff;
-    }
-    .conv-role {
-      font-size: 11px;
-      font-weight: bold;
-      text-transform: uppercase;
-      margin-bottom: 4px;
-    }
-    .conv-role-user { color: #00ff88; }
-    .conv-role-assistant { color: #00aaff; }
-    .conv-time { color: #555; font-size: 10px; float: right; }
-    .conv-date-select {
-      background: #1a1a1a;
-      color: #e0e0e0;
-      border: 1px solid #333;
-      border-radius: 6px;
-      padding: 6px 10px;
-      font-size: 13px;
-      margin-bottom: 12px;
-    }
-    .advisors-list { display: flex; flex-wrap: wrap; gap: 10px; }
-    .advisor-tag {
-      padding: 8px 16px;
-      background: #00ff8822;
-      color: #00ff88;
-      border-radius: 20px;
-      font-size: 13px;
-    }
-    .live-indicator {
+    
+    .status-row:not(:last-child) { border-bottom: 1px solid var(--border); }
+    
+    .status-dot {
       width: 8px;
       height: 8px;
-      background: #00ff88;
       border-radius: 50%;
       animation: pulse 2s infinite;
     }
+    
+    .status-dot.green { background: var(--green); }
+    .status-dot.red { background: var(--red); }
+    .status-dot.yellow { background: var(--yellow); }
+    
     @keyframes pulse {
       0%, 100% { opacity: 1; }
       50% { opacity: 0.5; }
     }
+    
+    /* Main */
+    .main {
+      padding: 1.5rem 2rem;
+      overflow-y: auto;
+    }
+    
+    .page-header {
+      margin-bottom: 1.5rem;
+    }
+    
+    .page-header h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+    }
+    
+    .page-header p {
+      color: var(--muted);
+      margin-top: 0.25rem;
+    }
+    
+    /* Stats Grid */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+    
+    .stat-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+    
+    .stat-label {
+      font-size: 0.875rem;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+    
+    .stat-value {
+      font-size: 1.75rem;
+      font-weight: 600;
+    }
+    
+    .stat-change {
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+    }
+    
+    .stat-change.up { color: var(--green); }
+    .stat-change.down { color: var(--red); }
+    
+    /* Cards */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .card-header h3 {
+      font-size: 0.875rem;
+      font-weight: 500;
+    }
+    
+    .card-body {
+      padding: 1.25rem;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    
+    .card-body.no-pad { padding: 0; }
+    
+    /* Grid layouts */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1rem;
+    }
+    
+    /* Conversation */
+    .conv-select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      padding: 0.5rem 0.75rem;
+      font-size: 0.875rem;
+    }
+    
+    .conv-msg {
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .conv-msg:last-child { border-bottom: none; }
+    
+    .conv-header {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.5rem;
+    }
+    
+    .conv-role {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    
+    .conv-role.user { color: var(--green); }
+    .conv-role.assistant { color: var(--accent); }
+    
+    .conv-time {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    
+    .conv-content {
+      font-size: 0.875rem;
+      line-height: 1.6;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    
+    /* Activity */
+    .activity-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      padding: 0.75rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+    }
+    
+    .activity-item:last-child { border-bottom: none; }
+    
+    .activity-icon {
+      width: 32px;
+      height: 32px;
+      background: var(--bg);
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.875rem;
+    }
+    
+    .activity-info { flex: 1; }
+    
+    .activity-tool {
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 0.875rem;
+      color: var(--accent);
+    }
+    
+    .activity-time {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    
+    /* Memory */
+    .memory-item {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.75rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    
+    .memory-item:hover { background: var(--bg); }
+    
+    .memory-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+    }
+    
+    .memory-icon.solutions { background: #22c55e22; color: var(--green); }
+    .memory-icon.errors { background: #ef444422; color: var(--red); }
+    .memory-icon.patterns { background: #8b5cf622; color: #8b5cf6; }
+    
+    .memory-name {
+      font-size: 0.875rem;
+    }
+    
+    .memory-type {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+    
+    /* Advisors */
+    .advisor-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    
+    .advisor-tag {
+      padding: 0.5rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 100px;
+      font-size: 0.875rem;
+      transition: border-color 0.15s;
+    }
+    
+    .advisor-tag:hover { border-color: var(--accent); }
+    
+    /* Inventory */
+    .inventory-content {
+      font-family: 'SF Mono', Monaco, monospace;
+      font-size: 0.8rem;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      color: #a1a1aa;
+    }
+    
+    .inventory-content h1,
+    .inventory-content h2,
+    .inventory-content h3 {
+      color: var(--text);
+      font-family: inherit;
+    }
+    
+    /* Empty state */
+    .empty {
+      text-align: center;
+      padding: 2rem;
+      color: var(--muted);
+    }
+    
+    .empty-icon {
+      font-size: 2rem;
+      margin-bottom: 0.5rem;
+    }
+    
+    /* Page views */
+    .page { display: none; }
+    .page.active { display: block; }
+    
+    /* Responsive */
+    @media (max-width: 1024px) {
+      .stats-grid { grid-template-columns: repeat(2, 1fr); }
+      .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    }
+    
+    @media (max-width: 768px) {
+      .layout { grid-template-columns: 1fr; }
+      .sidebar { display: none; }
+    }
   </style>
 </head>
 <body>
-  <div class="header">
-    <h1>Axel Dashboard</h1>
-    <div class="status">
-      <div class="live-indicator"></div>
-      <span id="cliproxyapi-status" class="status-item">Checking...</span>
-      <span id="uptime" class="status-item status-ok">--</span>
-    </div>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="logo">
+        <div class="logo-icon">⚡</div>
+        <h1>Axel</h1>
+      </div>
+      
+      <nav class="nav">
+        <div class="nav-item active" data-page="overview">
+          <span class="nav-icon">📊</span>
+          Oversigt
+        </div>
+        <div class="nav-item" data-page="conversations">
+          <span class="nav-icon">💬</span>
+          Samtaler
+        </div>
+        <div class="nav-item" data-page="memory">
+          <span class="nav-icon">🧠</span>
+          Memory
+        </div>
+        <div class="nav-item" data-page="inventory">
+          <span class="nav-icon">📦</span>
+          Inventory
+        </div>
+      </nav>
+      
+      <div class="status-card">
+        <div class="status-row">
+          <span>cliproxyapi</span>
+          <span class="status-dot green" id="status-proxy"></span>
+        </div>
+        <div class="status-row">
+          <span>Dashboard</span>
+          <span class="status-dot green"></span>
+        </div>
+        <div class="status-row">
+          <span>Uptime</span>
+          <span id="uptime-value">--</span>
+        </div>
+      </div>
+    </aside>
+    
+    <main class="main">
+      <!-- Overview Page -->
+      <div class="page active" id="page-overview">
+        <div class="page-header">
+          <h2>Oversigt</h2>
+          <p>Real-time status og aktivitet</p>
+        </div>
+        
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Samtaler i dag</div>
+            <div class="stat-value" id="stat-convs">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Tool calls</div>
+            <div class="stat-value" id="stat-tools">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Memory entries</div>
+            <div class="stat-value" id="stat-memory">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Advisors</div>
+            <div class="stat-value" id="stat-advisors">0</div>
+          </div>
+        </div>
+        
+        <div class="grid-3">
+          <div class="card">
+            <div class="card-header">
+              <h3>Seneste aktivitet</h3>
+              <span style="font-size: 0.75rem; color: var(--muted);">Live</span>
+            </div>
+            <div class="card-body no-pad" id="activity-list">
+              <div class="empty">
+                <div class="empty-icon">🔧</div>
+                <div>Ingen aktivitet endnu</div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="card">
+            <div class="card-header">
+              <h3>Advisors</h3>
+            </div>
+            <div class="card-body" id="advisors-list">
+              <div class="empty">
+                <div class="empty-icon">🧑‍💼</div>
+                <div>Ingen advisors endnu</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Conversations Page -->
+      <div class="page" id="page-conversations">
+        <div class="page-header">
+          <h2>Samtaler</h2>
+          <p>Alle samtaler med Gustav</p>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <h3>Samtale log</h3>
+            <select class="conv-select" id="conv-date"></select>
+          </div>
+          <div class="card-body no-pad" id="conversation-list" style="max-height: 600px;">
+            <div class="empty">
+              <div class="empty-icon">💬</div>
+              <div>Vælg en dato</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Memory Page -->
+      <div class="page" id="page-memory">
+        <div class="page-header">
+          <h2>Memory</h2>
+          <p>Løsninger, fejl og patterns</p>
+        </div>
+        
+        <div class="grid-2">
+          <div class="card">
+            <div class="card-header">
+              <h3>✅ Solutions</h3>
+            </div>
+            <div class="card-body" id="memory-solutions">
+              <div class="empty">Ingen solutions endnu</div>
+            </div>
+          </div>
+          
+          <div class="card">
+            <div class="card-header">
+              <h3>❌ Errors</h3>
+            </div>
+            <div class="card-body" id="memory-errors">
+              <div class="empty">Ingen errors endnu</div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card" style="margin-top: 1rem;">
+          <div class="card-header">
+            <h3>🔄 Patterns</h3>
+          </div>
+          <div class="card-body" id="memory-patterns">
+            <div class="empty">Ingen patterns endnu</div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Inventory Page -->
+      <div class="page" id="page-inventory">
+        <div class="page-header">
+          <h2>Inventory</h2>
+          <p>Alt hvad Axel har adgang til</p>
+        </div>
+        
+        <div class="card">
+          <div class="card-body" style="max-height: 700px;">
+            <div class="inventory-content" id="inventory-content">Loading...</div>
+          </div>
+        </div>
+      </div>
+    </main>
   </div>
-
-  <div class="grid">
-    <div class="card" style="grid-column: 1 / -1;">
-      <h2>Conversations</h2>
-      <select id="conv-date" class="conv-date-select" onchange="loadConversation(this.value)">
-        <option value="">Loading...</option>
-      </select>
-      <div class="conversation-list" id="conversation-list"></div>
-    </div>
-
-    <div class="card">
-      <h2>Live Activity</h2>
-      <div class="activity-list" id="activity-list"></div>
-    </div>
-
-    <div class="card">
-      <h2>Memory</h2>
-      <div class="memory-list" id="memory-list"></div>
-    </div>
-
-    <div class="card">
-      <h2>Advisors</h2>
-      <div class="advisors-list" id="advisors-list"></div>
-    </div>
-
-    <div class="card" style="grid-column: 1 / -1;">
-      <h2>Inventory</h2>
-      <div id="inventory-content" style="font-size:13px; line-height:1.6; max-height:500px; overflow-y:auto; white-space:pre-wrap; font-family:monospace; color:#ccc;"></div>
-    </div>
-  </div>
-
+  
   <script>
+    // Navigation
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', () => {
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        item.classList.add('active');
+        document.getElementById('page-' + item.dataset.page).classList.add('active');
+      });
+    });
+    
+    // WebSocket
     const ws = new WebSocket(`ws://${location.host}`);
-
+    
     ws.onmessage = (e) => {
       const msg = JSON.parse(e.data);
-      if (msg.type === 'activity') {
-        addActivity(msg.data);
-      } else if (msg.type === 'conversation') {
-        addConvMessage(msg.data);
-      }
+      if (msg.type === 'activity') addActivity(msg.data);
+      else if (msg.type === 'conversation') addConvMessage(msg.data);
     };
-
+    
+    ws.onclose = () => {
+      document.getElementById('status-proxy').className = 'status-dot red';
+    };
+    
+    // Activity
     function addActivity(item) {
       const list = document.getElementById('activity-list');
+      if (list.querySelector('.empty')) list.innerHTML = '';
+      
       const el = document.createElement('div');
       el.className = 'activity-item';
       el.innerHTML = `
-        <span class="tool-name">${item.tool}</span>
-        <span class="timestamp">${new Date(item.timestamp).toLocaleTimeString()}</span>
+        <div class="activity-icon">🔧</div>
+        <div class="activity-info">
+          <div class="activity-tool">${escapeHtml(item.tool)}</div>
+          <div class="activity-time">${new Date(item.timestamp).toLocaleTimeString('da-DK')}</div>
+        </div>
       `;
       list.insertBefore(el, list.firstChild);
-      if (list.children.length > 50) list.lastChild.remove();
+      if (list.children.length > 30) list.lastChild.remove();
+      
+      updateStats();
     }
-
-    async function loadActivity() {
-      const res = await fetch('/api/activity');
-      const data = await res.json();
-      data.forEach(addActivity);
+    
+    // Conversations
+    function addConvMessage(msg) {
+      const list = document.getElementById('conversation-list');
+      if (list.querySelector('.empty')) list.innerHTML = '';
+      
+      const role = msg.role || 'unknown';
+      const el = document.createElement('div');
+      el.className = 'conv-msg';
+      el.innerHTML = `
+        <div class="conv-header">
+          <span class="conv-role ${role}">${role === 'user' ? 'Gustav' : 'Axel'}</span>
+          <span class="conv-time">${msg.ts ? new Date(msg.ts).toLocaleTimeString('da-DK') : ''}</span>
+        </div>
+        <div class="conv-content">${escapeHtml((msg.content || '').substring(0, 3000))}</div>
+      `;
+      list.appendChild(el);
+      list.scrollTop = list.scrollHeight;
     }
-
-    async function loadMemory() {
-      const res = await fetch('/api/memory');
-      const data = await res.json();
-      const list = document.getElementById('memory-list');
-      list.innerHTML = '';
-
-      ['solutions', 'errors', 'patterns'].forEach(type => {
-        data[type].forEach(item => {
-          const el = document.createElement('div');
-          el.className = 'memory-item';
-          el.innerHTML = `
-            <div class="memory-type">${type}</div>
-            <div>${item.name}</div>
-          `;
-          list.appendChild(el);
-        });
-      });
-    }
-
-    async function loadAdvisors() {
-      const res = await fetch('/api/advisors');
-      const data = await res.json();
-      const list = document.getElementById('advisors-list');
-      list.innerHTML = data.length ? '' : '<span style="color:#666">No advisors yet. Axel creates them as needed.</span>';
-      data.forEach(a => {
-        const el = document.createElement('span');
-        el.className = 'advisor-tag';
-        el.textContent = a.name;
-        list.appendChild(el);
-      });
-    }
-
-    async function loadStatus() {
-      const res = await fetch('/api/status');
-      const data = await res.json();
-      const el = document.getElementById('cliproxyapi-status');
-      el.textContent = data.cliproxyapi ? 'cliproxyapi OK' : 'cliproxyapi DOWN';
-      el.className = 'status-item ' + (data.cliproxyapi ? 'status-ok' : 'status-err');
-      document.getElementById('uptime').textContent = `Up ${Math.floor(data.uptime / 60)}m`;
-    }
-
+    
     function escapeHtml(str) {
       const div = document.createElement('div');
       div.textContent = str;
       return div.innerHTML;
     }
-
-    function addConvMessage(msg) {
-      const list = document.getElementById('conversation-list');
-      const el = document.createElement('div');
-      const role = msg.role || 'unknown';
-      el.className = 'conv-msg conv-' + (role === 'user' ? 'user' : 'assistant');
-      const time = msg.ts ? new Date(msg.ts).toLocaleTimeString() : '';
-      const content = (msg.content || '').substring(0, 2000);
-      el.innerHTML = `
-        <span class="conv-time">${time}</span>
-        <div class="conv-role conv-role-${role === 'user' ? 'user' : 'assistant'}">${escapeHtml(role)}</div>
-        <div>${escapeHtml(content)}</div>
-      `;
-      list.appendChild(el);
-      list.scrollTop = list.scrollHeight;
+    
+    // API Loaders
+    async function loadActivity() {
+      try {
+        const res = await fetch('/api/activity');
+        const data = await res.json();
+        document.getElementById('stat-tools').textContent = data.length;
+        data.slice(0, 20).forEach(addActivity);
+      } catch {}
     }
-
+    
     async function loadConversationDates() {
-      const res = await fetch('/api/conversations');
-      const dates = await res.json();
-      const select = document.getElementById('conv-date');
-      select.innerHTML = dates.length
-        ? dates.map(d => `<option value="${d.date}">${d.date}</option>`).join('')
-        : '<option value="">No conversations yet</option>';
-      if (dates.length) loadConversation(dates[0].date);
+      try {
+        const res = await fetch('/api/conversations');
+        const dates = await res.json();
+        const select = document.getElementById('conv-date');
+        select.innerHTML = dates.length
+          ? dates.map(d => `<option value="${d.date}">${d.date}</option>`).join('')
+          : '<option value="">Ingen samtaler</option>';
+        
+        document.getElementById('stat-convs').textContent = dates.length;
+        
+        if (dates.length) loadConversation(dates[0].date);
+      } catch {}
     }
-
+    
     async function loadConversation(date) {
       if (!date) return;
-      const res = await fetch('/api/conversations/' + date);
-      const messages = await res.json();
-      const list = document.getElementById('conversation-list');
-      list.innerHTML = '';
-      messages.forEach(addConvMessage);
-      list.scrollTop = list.scrollHeight;
+      try {
+        const res = await fetch('/api/conversations/' + date);
+        const messages = await res.json();
+        const list = document.getElementById('conversation-list');
+        list.innerHTML = '';
+        messages.forEach(addConvMessage);
+        list.scrollTop = list.scrollHeight;
+      } catch {}
     }
-
+    
+    document.getElementById('conv-date').addEventListener('change', (e) => {
+      loadConversation(e.target.value);
+    });
+    
+    async function loadMemory() {
+      try {
+        const res = await fetch('/api/memory');
+        const data = await res.json();
+        
+        let total = 0;
+        ['solutions', 'errors', 'patterns'].forEach(type => {
+          const container = document.getElementById('memory-' + type);
+          if (data[type].length === 0) {
+            container.innerHTML = '<div class="empty">Ingen ' + type + ' endnu</div>';
+          } else {
+            container.innerHTML = data[type].map(item => `
+              <div class="memory-item">
+                <div class="memory-icon ${type}">
+                  ${type === 'solutions' ? '✅' : type === 'errors' ? '❌' : '🔄'}
+                </div>
+                <div>
+                  <div class="memory-name">${escapeHtml(item.name)}</div>
+                  <div class="memory-type">${type}</div>
+                </div>
+              </div>
+            `).join('');
+          }
+          total += data[type].length;
+        });
+        
+        document.getElementById('stat-memory').textContent = total;
+      } catch {}
+    }
+    
+    async function loadAdvisors() {
+      try {
+        const res = await fetch('/api/advisors');
+        const data = await res.json();
+        const container = document.getElementById('advisors-list');
+        
+        document.getElementById('stat-advisors').textContent = data.length;
+        
+        if (data.length === 0) {
+          container.innerHTML = '<div class="empty"><div class="empty-icon">🧑‍💼</div><div>Ingen advisors endnu</div></div>';
+        } else {
+          container.innerHTML = '<div class="advisor-grid">' + 
+            data.map(a => `<span class="advisor-tag">${escapeHtml(a.name)}</span>`).join('') +
+            '</div>';
+        }
+      } catch {}
+    }
+    
     async function loadInventory() {
-      const res = await fetch('/api/inventory');
-      if (res.ok) {
-        const text = await res.text();
-        document.getElementById('inventory-content').textContent = text;
-      } else {
-        document.getElementById('inventory-content').textContent = 'No inventory yet.';
-      }
+      try {
+        const res = await fetch('/api/inventory');
+        if (res.ok) {
+          document.getElementById('inventory-content').textContent = await res.text();
+        } else {
+          document.getElementById('inventory-content').textContent = 'Ingen inventory endnu.';
+        }
+      } catch {}
     }
-
-    loadInventory();
-    loadConversationDates();
+    
+    async function loadStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        
+        document.getElementById('status-proxy').className = 
+          'status-dot ' + (data.cliproxyapi ? 'green' : 'red');
+        
+        const mins = Math.floor(data.uptime / 60);
+        const hours = Math.floor(mins / 60);
+        document.getElementById('uptime-value').textContent = 
+          hours > 0 ? `${hours}t ${mins % 60}m` : `${mins}m`;
+      } catch {}
+    }
+    
+    function updateStats() {
+      const tools = document.getElementById('activity-list').children.length;
+      document.getElementById('stat-tools').textContent = tools;
+    }
+    
+    // Init
     loadActivity();
+    loadConversationDates();
     loadMemory();
     loadAdvisors();
+    loadInventory();
     loadStatus();
+    
     setInterval(loadStatus, 30000);
     setInterval(loadMemory, 60000);
     setInterval(loadAdvisors, 60000);
-    setInterval(loadConversationDates, 120000);
+    setInterval(loadConversationDates, 60000);
   </script>
 </body>
 </html>
